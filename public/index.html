@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chatival</title>
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --tinta: #3b2614;
+            --tinta-suave: #6b4a2b;
+            --papel: #f1e2bf;
+            --papel-oscuro: #d9c08b;
+            --madera: #5a3a1e;
+            --cera-propia: #9b1c1c;
+            --cera-ajena: #2f5d3a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            font-family: "IM Fell English", Georgia, serif;
+            color: var(--tinta);
+            /* Fondo: mesa de madera oscura */
+            background:
+                radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,.6) 100%),
+                repeating-linear-gradient(90deg, #2b1a0e 0 3px, #24160b 3px 7px, #2e1c10 7px 12px);
+            background-color: #24160b;
+            overflow-x: hidden;
+        }
+
+        /* ===== El pergamino ===== */
+        .pergamino {
+            position: relative;
+            width: min(960px, 100%);
+            height: calc(100vh - 48px);
+            max-height: 1100px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Rodillos de madera arriba y abajo */
+        .rodillo {
+            position: relative;
+            z-index: 2;
+            height: 28px;
+            margin: 0 -18px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #8a5a2f 0%, #5a3a1e 45%, #3a2410 100%);
+            box-shadow: 0 4px 8px rgba(0,0,0,.5);
+        }
+        .rodillo::before, .rodillo::after {
+            content: "";
+            position: absolute;
+            top: -4px;
+            width: 22px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #c99a4b, #7a5420);
+        }
+        .rodillo::before { left: -10px; }
+        .rodillo::after  { right: -10px; }
+
+        .hoja {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            margin: -6px 0;
+            padding: 26px 40px 22px;
+            /* Textura de papel viejo hecha con degradados */
+            background:
+                radial-gradient(circle at 15% 20%, rgba(150,100,40,.18), transparent 25%),
+                radial-gradient(circle at 85% 70%, rgba(150,100,40,.15), transparent 30%),
+                radial-gradient(circle at 60% 10%, rgba(120,80,30,.10), transparent 20%),
+                linear-gradient(90deg, var(--papel-oscuro), var(--papel) 8%, var(--papel) 92%, var(--papel-oscuro));
+            box-shadow: inset 0 0 60px rgba(110,70,20,.35);
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            text-align: center;
+            font-family: "IM Fell English SC", Georgia, serif;
+            font-weight: normal;
+            font-size: clamp(2rem, 6vw, 3rem);
+            letter-spacing: .04em;
+        }
+        .separador {
+            border: none;
+            height: 1px;
+            margin: 0 0 8px;
+            background: linear-gradient(90deg, transparent, var(--tinta-suave), transparent);
+        }
+
+        /* ===== Lista de mensajes ===== */
+        #mensajes {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            list-style: none;
+            margin: 0;
+            padding: 8px 4px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--tinta-suave) transparent;
+        }
+
+        #mensajes li {
+            position: relative;
+            max-width: 78%;
+            padding: 12px 20px 14px;
+            border-radius: 3px;
+            background: #f8edd2;
+            border: 1px solid rgba(107,74,43,.35);
+            box-shadow: 2px 3px 6px rgba(80,50,20,.25);
+            overflow-wrap: anywhere;
+        }
+        #mensajes li .autor {
+            display: block;
+            font-family: "IM Fell English SC", Georgia, serif;
+            font-size: 1.1rem;
+            color: var(--tinta-suave);
+            margin-bottom: 4px;
+        }
+        #mensajes li .texto {
+            margin: 0;
+            font-size: 1.45rem;
+            line-height: 1.4;
+        }
+        /* Sello de cera en la esquina de cada carta */
+        #mensajes li::after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            box-shadow: 0 2px 3px rgba(0,0,0,.35);
+        }
+
+        /* .propio = mensajes que envie yo (a la derecha, sello rojo)
+           .ajeno  = mensajes de otros usuarios (a la izquierda, sello verde) */
+        .propio { align-self: flex-end; text-align: right; }
+        .propio::after {
+            left: -8px;
+            background: radial-gradient(circle at 35% 35%, #d24a4a, var(--cera-propia) 60%, #5c0e0e);
+        }
+        .ajeno { align-self: flex-start; }
+        .ajeno::after {
+            right: -8px;
+            background: radial-gradient(circle at 35% 35%, #5a9a68, var(--cera-ajena) 60%, #17321e);
+        }
+
+        /* La carta se desenrolla cuando el cuervo la deja */
+        .esperando { visibility: hidden; }
+        .entregado { animation: desenrollar .5s ease-out; }
+        @keyframes desenrollar {
+            from { opacity: 0; transform: translateY(-14px) scaleY(.2); transform-origin: top; }
+            to   { opacity: 1; transform: none; transform-origin: top; }
+        }
+
+        /* ===== Formulario (pluma y tinta) ===== */
+        .escribir {
+            display: flex;
+            gap: 10px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(107,74,43,.5);
+        }
+        #mensaje {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            font: inherit;
+            font-size: 1.35rem;
+            font-style: italic;
+            color: var(--tinta);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--tinta-suave);
+            outline: none;
+        }
+        #mensaje::placeholder { color: rgba(107,74,43,.6); }
+        #mensaje:focus { border-bottom-color: var(--tinta); }
+
+        .boton-cuervo {
+            padding: 10px 20px;
+            font-family: "IM Fell English SC", Georgia, serif;
+            font-size: 1.2rem;
+            color: #f3e3c0;
+            background: linear-gradient(180deg, #6e4423, var(--madera));
+            border: 1px solid #2e1c0e;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,.35);
+        }
+        .boton-cuervo:hover { background: linear-gradient(180deg, #82532c, #66421f); }
+        .boton-cuervo:active { transform: translateY(1px); }
+
+        /* ===== El cuervo mensajero ===== */
+        .cuervo {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 120px;
+            height: 80px;
+            z-index: 10;
+            pointer-events: none;
+            filter: drop-shadow(0 8px 6px rgba(0,0,0,.35));
+        }
+        .cuervo svg { width: 100%; height: 100%; display: block; }
+        .cuervo.izquierda svg { transform: scaleX(-1); }
+        /* Aleteo: el ala se "aplasta" hacia abajo y vuelve */
+        .cuervo .ala {
+            transform-box: view-box;
+            transform-origin: 62px 46px;
+            animation: aletear .22s ease-in-out infinite alternate;
+        }
+        .cuervo .ala-trasera { animation-delay: .05s; }
+        @keyframes aletear {
+            from { transform: scaleY(1); }
+            to   { transform: scaleY(-.55); }
+        }
+
+        /* Avisos de llegada y salida */
+        #mensajes li.aviso {
+            align-self: center;
+            max-width: 90%;
+            padding: 2px 8px;
+            background: none;
+            border: none;
+            box-shadow: none;
+            font-style: italic;
+            font-size: 1.15rem;
+            color: var(--tinta-suave);
+            text-align: center;
+        }
+        #mensajes li.aviso::after { display: none; }
+
+        /* ===== Ventana para elegir nombre ===== */
+        .entrada {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(20,12,5,.75);
+        }
+        .entrada[hidden] { display: none; }
+        .entrada form {
+            width: min(460px, 100%);
+            padding: 28px 28px 24px;
+            text-align: center;
+            background: linear-gradient(90deg, var(--papel-oscuro), var(--papel) 10%, var(--papel) 90%, var(--papel-oscuro));
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.6), inset 0 0 40px rgba(110,70,20,.35);
+        }
+        .entrada h2 {
+            margin: 0 0 6px;
+            font-family: "IM Fell English SC", Georgia, serif;
+            font-weight: normal;
+            font-size: 2rem;
+        }
+        .entrada p { margin: 0 0 18px; font-size: 1.2rem; font-style: italic; color: var(--tinta-suave); }
+        #nombre {
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 10px 12px;
+            font: inherit;
+            font-size: 1.35rem;
+            text-align: center;
+            color: var(--tinta);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--tinta-suave);
+            outline: none;
+        }
+        #nombre:focus { border-bottom-color: var(--tinta); }
+        .error-nombre { min-height: 1.4em; margin: 0 0 12px; color: var(--cera-propia); font-size: 1.05rem; }
+
+        @media (max-width: 520px) {
+            .hoja { padding: 18px 16px 14px; }
+            #mensajes li { max-width: 90%; }
+            #mensajes li .texto { font-size: 1.3rem; }
+            .escribir { flex-wrap: wrap; }
+            .boton-cuervo { flex: 1 0 100%; }
+            .rodillo { margin: 0 -8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="pergamino">
+        <div class="rodillo"></div>
+        <div class="hoja">
+            <h1>Chatival</h1>
+            <hr class="separador">
+
+            <ul id="mensajes"></ul>
+
+            <form class="escribir" id="form-mensaje">
+                <input
+                    type="text"
+                    id="mensaje"
+                    autocomplete="off"
+                    placeholder="Escribe tu mensaje">
+                <button type="submit" class="boton-cuervo">Enviar cuervo</button>
+            </form>
+        </div>
+        <div class="rodillo"></div>
+    </div>
+
+    <!-- Ventana para elegir nombre al entrar -->
+    <div class="entrada" id="entrada">
+        <form id="form-nombre" autocomplete="off">
+            <h2>Bienvenido a Chatival</h2>
+            <p>¿Con qué nombre firmarás tus cartas?</p>
+            <input type="text" id="nombre" maxlength="24" placeholder="Tu nombre" required>
+            <p class="error-nombre" id="error-nombre" role="alert"></p>
+            <button type="submit" class="boton-cuervo">Entrar</button>
+        </form>
+    </div>
+
+    <!-- Plantilla del cuervo (se clona por cada mensaje) -->
+    <template id="plantilla-cuervo">
+        <div class="cuervo">
+            <svg viewBox="0 0 140 90" aria-hidden="true">
+                <!-- ala de atras (mas oscura) -->
+                <path class="ala ala-trasera" fill="#1a1a22"
+                      d="M64 46 Q54 14 26 6 Q42 22 40 30 Q32 26 22 30 Q38 38 46 48 Z"/>
+                <!-- cola -->
+                <polygon fill="#0e0e14" points="8,42 34,48 34,56 4,62 14,52"/>
+                <!-- cuerpo, cuello y cabeza -->
+                <ellipse fill="#111118" cx="60" cy="52" rx="30" ry="13"/>
+                <ellipse fill="#111118" cx="84" cy="48" rx="12" ry="9"/>
+                <circle  fill="#111118" cx="95" cy="43" r="11"/>
+                <!-- pico -->
+                <polygon fill="#2a2a30" points="103,39 126,46 103,49"/>
+                <!-- ojo -->
+                <circle fill="#e0a526" cx="98" cy="41" r="1.8"/>
+                <!-- patas -->
+                <path stroke="#2a2a30" stroke-width="2" fill="none" d="M58 63 L56 72 M66 63 L66 72"/>
+                <!-- carta enrollada en las garras -->
+                <rect x="46" y="71" width="30" height="8" rx="4" fill="#efdcb0" stroke="#8a6a3e"/>
+                <rect x="58" y="70" width="5" height="10" fill="#9b1c1c"/>
+                <!-- ala de enfrente -->
+                <path class="ala" fill="#22222c"
+                      d="M62 46 Q50 8 18 2 Q36 20 34 30 Q24 26 14 30 Q34 40 44 50 Z"/>
+            </svg>
+        </div>
+    </template>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        // Conectar con el servidor
+        const socket = io();
+        let miNombre = null;
+
+        // ===== Elegir nombre al entrar =====
+        const entrada = document.getElementById("entrada");
+        const inputNombre = document.getElementById("nombre");
+        const errorNombre = document.getElementById("error-nombre");
+
+        // Recordar el ultimo nombre usado en este navegador
+        try { inputNombre.value = localStorage.getItem("chatival-nombre") || ""; } catch (e) {}
+        inputNombre.focus();
+
+        function unirse(nombre) {
+            socket.emit("unirse", nombre, (respuesta) => {
+                if (!respuesta.ok) {
+                    errorNombre.textContent = respuesta.error;
+                    entrada.hidden = false;
+                    return;
+                }
+                miNombre = respuesta.nombre;
+                try { localStorage.setItem("chatival-nombre", miNombre); } catch (e) {}
+                entrada.hidden = true;
+                document.getElementById("mensaje").focus();
+            });
+        }
+
+        document.getElementById("form-nombre").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const nombre = inputNombre.value.trim();
+            if (!nombre) {
+                errorNombre.textContent = "Escribe un nombre";
+                return;
+            }
+            errorNombre.textContent = "";
+            unirse(nombre);
+        });
+
+        // Si se cae la conexion y vuelve, el servidor olvida el nombre: se lo reenviamos
+        socket.on("connect", () => {
+            if (miNombre) unirse(miNombre);
+        });
+
+        // ===== Enviar mensaje =====
+        document.getElementById("form-mensaje").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const input = document.getElementById("mensaje");
+            if (!miNombre) {
+                entrada.hidden = false;
+                return;
+            }
+            if (input.value.trim() !== "") {
+                socket.emit("mensaje", input.value);
+                input.value = "";
+            }
+        });
+
+        // Si el usuario prefiere menos animaciones, la carta aparece sin cuervo
+        const sinAnimaciones = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // Avisos de llegada y salida de usuarios
+        socket.on("aviso", (texto) => {
+            const lista = document.getElementById("mensajes");
+            const item = document.createElement("li");
+            item.className = "aviso";
+            item.textContent = texto;
+            lista.appendChild(item);
+            lista.scrollTop = lista.scrollHeight;
+        });
+
+        // Recibir {id, nombre, texto}
+        socket.on("mensaje", ({ id, nombre, texto }) => {
+            const lista = document.getElementById("mensajes");
+            const item = document.createElement("li");
+
+            // Si el id del mensaje es igual a mi socket.id, lo escribi yo
+            const esPropio = id === socket.id;
+            item.classList.add(esPropio ? "propio" : "ajeno");
+
+            // Firma de la carta con el nombre elegido
+            const autor = document.createElement("span");
+            autor.className = "autor";
+            autor.textContent = esPropio ? `${nombre} (tú)` : nombre;
+
+            const parrafo = document.createElement("p");
+            parrafo.className = "texto";
+            parrafo.textContent = texto; // textContent evita inyectar HTML
+
+            item.append(autor, parrafo);
+
+            // La carta queda invisible hasta que el cuervo llegue
+            item.classList.add("esperando");
+            lista.appendChild(item);
+            lista.scrollTop = lista.scrollHeight;
+
+            if (sinAnimaciones) {
+                entregar(item);
+            } else {
+                enviarCuervo(item, esPropio);
+            }
+        });
+
+        // Muestra la carta con la animacion de desenrollar
+        function entregar(item) {
+            item.classList.remove("esperando");
+            item.classList.add("entregado");
+        }
+
+        // El cuervo entra volando por el lado de la carta, la deja y se va
+        function enviarCuervo(item, esPropio) {
+            const cuervo = document
+                .getElementById("plantilla-cuervo")
+                .content.firstElementChild.cloneNode(true);
+
+            // Mis cartas entran por la derecha, las ajenas por la izquierda
+            const desdeDerecha = esPropio;
+            if (desdeDerecha) cuervo.classList.add("izquierda"); // mira hacia la izquierda
+
+            document.body.appendChild(cuervo);
+
+            const caja = item.getBoundingClientRect();
+            const ancho = 120, alto = 80;
+
+            // Punto donde suelta la carta (las garras justo encima de ella)
+            const destinoX = caja.left + caja.width / 2 - ancho / 2;
+            const destinoY = caja.top - alto + 10;
+
+            // Fuera de la pantalla, por el lado correspondiente
+            const inicioX = desdeDerecha ? window.innerWidth + 40 : -ancho - 40;
+            const inicioY = destinoY - 120;
+            const salidaX = desdeDerecha ? -ancho - 60 : window.innerWidth + 60;
+            const salidaY = -alto - 80;
+
+            const pos = (x, y, giro = 0) => ({ transform: `translate(${x}px, ${y}px) rotate(${giro}deg)` });
+            const inclinar = desdeDerecha ? -1 : 1;
+
+            // 1) Vuelo de llegada en arco
+            const llegada = cuervo.animate([
+                pos(inicioX, inicioY, 10 * inclinar),
+                pos((inicioX + destinoX) / 2, destinoY - 70, 4 * inclinar),
+                pos(destinoX, destinoY, 0)
+            ], { duration: 1100, easing: "ease-out", fill: "forwards" });
+
+            llegada.onfinish = () => {
+                // 2) Suelta la carta
+                entregar(item);
+
+                // Quita la carta enrollada de las garras
+                cuervo.querySelectorAll("rect").forEach(r => r.remove());
+
+                // 3) Se aleja volando hacia arriba
+                const salida = cuervo.animate([
+                    pos(destinoX, destinoY, 0),
+                    pos(destinoX, destinoY - 20, -6 * inclinar),
+                    pos(salidaX, salidaY, -18 * inclinar)
+                ], { duration: 1000, delay: 150, easing: "ease-in", fill: "forwards" });
+
+                salida.onfinish = () => cuervo.remove();
+            };
+        }
+    </script>
+</body>
+</html>
